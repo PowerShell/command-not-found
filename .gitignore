@@ -1,0 +1,17 @@
+bin/
+obj/
+.ionide/
+project.lock.json
+*-tests.xml
+/debug/
+/staging/
+/Packages/
+*.nuget.props
+
+# VSCode directories that are not at the repository root
+/**/.vscode/
+
+# Ignore binaries and symbols
+*.pdb
+*.dll
+
