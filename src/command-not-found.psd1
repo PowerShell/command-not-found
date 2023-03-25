@@ -16,4 +16,11 @@
     CmdletsToExport = @()
     VariablesToExport = '*'
     AliasesToExport = @()
+
+    PrivateData = @{
+        PSData = @{
+            Tags = @('Linux')
+            ProjectUri = 'https://github.com/PowerShell/command-not-found'
+        }
+    }
 }
