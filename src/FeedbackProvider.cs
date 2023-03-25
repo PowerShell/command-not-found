@@ -6,12 +6,12 @@ using System.Management.Automation.Subsystem.Prediction;
 
 namespace Microsoft.PowerShell.FeedbackProvider;
 
-public sealed class UnixCommandNotFound : IFeedbackProvider, ICommandPredictor
+public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 {
     private readonly Guid _guid;
     private List<string>? _candidates;
 
-    internal UnixCommandNotFound(string guid)
+    internal LinuxCommandNotFound(string guid)
     {
         _guid = new Guid(guid);
     }
@@ -22,7 +22,7 @@ public sealed class UnixCommandNotFound : IFeedbackProvider, ICommandPredictor
 
     public string Name => "cmd-not-found";
 
-    public string Description => "The built-in feedback/prediction source for the Unix command utility.";
+    public string Description => "The built-in feedback/prediction source for the Linux command utility.";
 
     #region IFeedbackProvider
 
@@ -176,7 +176,7 @@ public class Init : IModuleAssemblyInitializer, IModuleAssemblyCleanup
 
     public void OnImport()
     {
-        var feedback = new UnixCommandNotFound(Id);
+        var feedback = new LinuxCommandNotFound(Id);
         SubsystemManager.RegisterSubsystem(SubsystemKind.FeedbackProvider, feedback);
         SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, feedback);
     }
