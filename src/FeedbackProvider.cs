@@ -46,20 +46,16 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
         }
     }
 
-    public FeedbackItem? GetFeedback(string commandLine, ErrorRecord lastError, CancellationToken token)
+    public FeedbackItem? GetFeedback(FeedbackContext context, CancellationToken token)
     {
-        if (Platform.IsWindows || lastError.FullyQualifiedErrorId != "CommandNotFoundException")
+        if (Platform.IsWindows)
         {
             return null;
         }
 
-        var target = (string)lastError.TargetObject;
-        if (target is null)
-        {
-            return null;
-        }
-
-        if (target.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+        // Use the different trigger 'CommandNotFound', so 'LastError' won't be null.
+        var target = (string)context.LastError!.TargetObject;
+        if (target is null || target.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
