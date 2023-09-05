@@ -20,7 +20,7 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 
     public Guid Id => _guid;
 
-    public string Name => "cmd-not-found";
+    public string Name => "command-not-found";
 
     public string Description => "The built-in feedback/prediction source for the Linux command utility.";
 
