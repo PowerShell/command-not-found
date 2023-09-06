@@ -53,7 +53,7 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
             return null;
         }
 
-        // Use the different trigger 'CommandNotFound', so 'LastError' won't be null.
+        // Use the default trigger 'CommandNotFound', so 'LastError' won't be null.
         var target = (string)context.LastError!.TargetObject;
         if (target is null || target.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
         {
@@ -156,12 +156,6 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
         // Reset the candidate state.
         _candidates = null;
     }
-
-    public void OnSuggestionDisplayed(PredictionClient client, uint session, int countOrIndex) { }
-
-    public void OnSuggestionAccepted(PredictionClient client, uint session, string acceptedSuggestion) { }
-
-    public void OnCommandLineExecuted(PredictionClient client, string commandLine, bool success) { }
 
     #endregion;
 }
