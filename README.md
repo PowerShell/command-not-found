@@ -38,12 +38,6 @@ and available in your `PATH` environment variable.
 Run `.\build.ps1` from `pwsh` to build the project.
 The module will be published to `.\bin\command-not-found` by a successful build.
 
-
-[command-line-predictor]: https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.3
-[psreadline-226]: https://www.powershellgallery.com/packages/PSReadLine/2.2.6
-[subsystem-plugin-model]: https://docs.microsoft.com/powershell/scripting/learn/experimental-features#pssubsystempluginmodel
-[how-to-create-predictor]: https://docs.microsoft.com/powershell/scripting/dev-cross-plat/create-cmdline-predictor
-
 ## Code of Conduct
 
 Please see our [Code of Conduct](.github/CODE_OF_CONDUCT.md) before participating in this project.
@@ -51,3 +45,8 @@ Please see our [Code of Conduct](.github/CODE_OF_CONDUCT.md) before participatin
 ## Security Policy
 
 For any security issues, please see our [Security Policy](.github/SECURITY.md).
+
+[command-line-predictor]: https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.3
+[psreadline-226]: https://www.powershellgallery.com/packages/PSReadLine/2.2.6
+[subsystem-plugin-model]: https://docs.microsoft.com/powershell/scripting/learn/experimental-features#pssubsystempluginmodel
+[how-to-create-predictor]: https://docs.microsoft.com/powershell/scripting/dev-cross-plat/create-cmdline-predictor
