@@ -26,18 +26,25 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 
     #region IFeedbackProvider
 
-    private static string? GetUtilityPath()
-    {
-        string cmd_not_found = "/usr/lib/command-not-found";
-        bool exist = IsFileExecutable(cmd_not_found);
+    private string? _commandNotFoundTool;
 
-        if (!exist)
+    private string? GetUtilityPath()
+    {
+        if (_commandNotFoundTool is null)
         {
-            cmd_not_found = "/usr/share/command-not-found/command-not-found";
-            exist = IsFileExecutable(cmd_not_found);
+            string cmd_not_found = "/usr/lib/command-not-found";
+            bool exist = IsFileExecutable(cmd_not_found);
+
+            if (!exist)
+            {
+                cmd_not_found = "/usr/share/command-not-found/command-not-found";
+                exist = IsFileExecutable(cmd_not_found);
+            }
+
+            _commandNotFoundTool = exist ? cmd_not_found : null;
         }
 
-        return exist ? cmd_not_found : null;
+        return _commandNotFoundTool;
 
         static bool IsFileExecutable(string path)
         {
@@ -63,15 +70,19 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
         string? cmd_not_found = GetUtilityPath();
         if (cmd_not_found is not null)
         {
-            var startInfo = new ProcessStartInfo(cmd_not_found);
+            var startInfo = new ProcessStartInfo(cmd_not_found)
+            {
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            startInfo.ArgumentList.Add("--no-failure-msg");
             startInfo.ArgumentList.Add(target);
-            startInfo.RedirectStandardError = true;
-            startInfo.RedirectStandardOutput = true;
 
             using var process = Process.Start(startInfo);
             if (process is not null)
             {
-                string? header = null;
+                string? header = null, footer = null;
                 List<string>? actions = null;
 
                 while (true)
@@ -89,20 +100,45 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 
                     if (line.StartsWith("sudo ", StringComparison.Ordinal))
                     {
-                        actions ??= new List<string>();
+                        actions ??= [];
                         actions.Add(line.TrimEnd());
                     }
-                    else if (actions is null)
+                    else if (line.StartsWith("  "))
                     {
-                        header = line;
+                        int index = line.IndexOf(" deb ", StringComparison.Ordinal);
+                        if (index > 0)
+                        {
+                            string package = GetPackageName(line, index + 5);
+                            (actions ??= []).Add(line.Trim());
+                            (_candidates ??= []).Add($"sudo apt install {package}");
+
+                            continue;
+                        }
+
+                        index = line.IndexOf(" snap ", StringComparison.Ordinal);
+                        if (index > 0)
+                        {
+                            string package = GetPackageName(line, index + 6);
+                            (actions ??= []).Add(line.Trim());
+                            (_candidates ??= []).Add($"sudo snap install {package}");
+                        }
+                    }
+                    else
+                    {
+                        if (actions is null)
+                        {
+                            header = line.Trim();
+                        }
+                        else
+                        {
+                            footer = line.Trim();
+                        }
                     }
                 }
 
                 if (actions is not null && header is not null)
                 {
-                    _candidates = actions;
-
-                    var footer = process.StandardOutput.ReadToEnd().Trim();
+                    _candidates ??= actions;
                     return string.IsNullOrEmpty(footer)
                         ? new FeedbackItem(header, actions)
                         : new FeedbackItem(header, actions, footer, FeedbackDisplayLayout.Portrait);
@@ -111,6 +147,12 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
         }
 
         return null;
+    }
+
+    private static string GetPackageName(string line, int startIndex)
+    {
+        int nextSpace = line.IndexOf(' ', startIndex);
+        return nextSpace > 0 ? line[startIndex..nextSpace] : line[startIndex..];
     }
 
     #endregion

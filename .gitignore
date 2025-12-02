@@ -14,4 +14,4 @@ project.lock.json
 # Ignore binaries and symbols
 *.pdb
 *.dll
-
+*.sln
