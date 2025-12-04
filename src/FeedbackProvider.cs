@@ -100,7 +100,7 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 
                     if (line.StartsWith("sudo ", StringComparison.Ordinal))
                     {
-                        (actions ??= []).Add(line.TrimEnd());;
+                        (actions ??= []).Add(line.TrimEnd());
                     }
                     else if (line.StartsWith("  "))
                     {
