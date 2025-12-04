@@ -119,7 +119,10 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
                         {
                             string package = GetPackageName(line, index + 6);
                             (actions ??= []).Add(line.Trim());
-                            (_candidates ??= []).Add($"sudo snap install {package}");
+
+                            _candidates ??= [];
+                            _candidates.Add($"snap info {package}");
+                            _candidates.Add($"sudo snap install {package}");
                         }
                     }
                     else
