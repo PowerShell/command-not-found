@@ -26,18 +26,25 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 
     #region IFeedbackProvider
 
-    private static string? GetUtilityPath()
-    {
-        string cmd_not_found = "/usr/lib/command-not-found";
-        bool exist = IsFileExecutable(cmd_not_found);
+    private string? _commandNotFoundTool;
 
-        if (!exist)
+    private string? GetUtilityPath()
+    {
+        if (_commandNotFoundTool is null)
         {
-            cmd_not_found = "/usr/share/command-not-found/command-not-found";
-            exist = IsFileExecutable(cmd_not_found);
+            string cmd_not_found = "/usr/lib/command-not-found";
+            bool exist = IsFileExecutable(cmd_not_found);
+
+            if (!exist)
+            {
+                cmd_not_found = "/usr/share/command-not-found/command-not-found";
+                exist = IsFileExecutable(cmd_not_found);
+            }
+
+            _commandNotFoundTool = exist ? cmd_not_found : null;
         }
 
-        return exist ? cmd_not_found : null;
+        return _commandNotFoundTool;
 
         static bool IsFileExecutable(string path)
         {
@@ -61,17 +68,26 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
         }
 
         string? cmd_not_found = GetUtilityPath();
-        if (cmd_not_found is not null)
+        if (cmd_not_found is null)
         {
-            var startInfo = new ProcessStartInfo(cmd_not_found);
-            startInfo.ArgumentList.Add(target);
-            startInfo.RedirectStandardError = true;
-            startInfo.RedirectStandardOutput = true;
+            return null;
+        }
 
+        var startInfo = new ProcessStartInfo(cmd_not_found)
+        {
+            RedirectStandardError = true,
+            RedirectStandardOutput = true
+        };
+
+        startInfo.ArgumentList.Add("--no-failure-msg");
+        startInfo.ArgumentList.Add(target);
+
+        try
+        {
             using var process = Process.Start(startInfo);
             if (process is not null)
             {
-                string? header = null;
+                string? header = null, footer = null;
                 List<string>? actions = null;
 
                 while (true)
@@ -89,28 +105,110 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
 
                     if (line.StartsWith("sudo ", StringComparison.Ordinal))
                     {
-                        actions ??= new List<string>();
-                        actions.Add(line.TrimEnd());
+                        /*
+                         * ----- Example Output (1) -----
+                         * Command 'cargo' not found, but can be installed with:
+                         * sudo snap install rustup  # version 1.28.2, or
+                         * sudo apt  install cargo   # version 1.75.0+dfsg0ubuntu1-0ubuntu7.1
+                         * sudo apt  install rustup  # version 1.26.0-3
+                         * See 'snap info rustup' for additional versions.
+                         *
+                         * ----- Example Output (2) -----
+                         * Command 'sshd' not found, but can be installed with:
+                         * sudo apt install openssh-server
+                        */
+                        (actions ??= []).Add(line.TrimEnd());
+
+                        // Remove the ending comment about the package version.
+                        line = line.Split('#', StringSplitOptions.TrimEntries)[0];
+                        _candidates ??= [];
+
+                        // 5 = "sudo ".Length
+                        var rest = line.AsSpan(5);
+                        if (rest.StartsWith("snap install ", StringComparison.Ordinal))
+                        {
+                            // 13 = "snap install ".Length
+                            string package = GetPackageName(rest[13..]);
+                            _candidates.Add($"snap info {package}");
+                        }
+                        else if (rest.StartsWith("apt  install", StringComparison.Ordinal))
+                        {
+                            line = line.Replace("apt  install", "apt install");
+                        }
+
+                        _candidates.Add(line);
                     }
-                    else if (actions is null)
+                    else if (line.StartsWith("  "))
                     {
-                        header = line;
+                        /*
+                         * ----- Example Output -----
+                         * Command 'dor' not found, did you mean:
+                         *   command 'dog' from snap dog (v0.1.0)
+                         *   command 'oor' from deb openoverlayrouter (1.3.0+ds1-3)
+                         *   command 'vor' from deb vor (0.5.8-1)
+                         *   command 'dir' from deb coreutils (9.4-3ubuntu6.1)
+                         *   command 'dar' from deb dar (2.7.13-2)
+                         *   command 'tor' from deb tor (0.4.8.10-1)
+                         * See 'snap info <snapname>' for additional versions.
+                        */
+                        int index = line.IndexOf(" deb ", StringComparison.Ordinal);
+                        if (index > 0)
+                        {
+                            // 5 = " deb ".Length
+                            string package = GetPackageName(line.AsSpan(index + 5));
+                            (actions ??= []).Add(line.Trim());
+                            (_candidates ??= []).Add($"sudo apt install {package}");
+
+                            continue;
+                        }
+
+                        index = line.IndexOf(" snap ", StringComparison.Ordinal);
+                        if (index > 0)
+                        {
+                            // 6 = " snap ".Length
+                            string package = GetPackageName(line.AsSpan(index + 6));
+                            (actions ??= []).Add(line.Trim());
+
+                            _candidates ??= [];
+                            _candidates.Add($"snap info {package}");
+                            _candidates.Add($"sudo snap install {package}");
+                        }
+                    }
+                    else
+                    {
+                        if (actions is null)
+                        {
+                            header = line.Trim();
+                        }
+                        else
+                        {
+                            footer = line.Trim();
+                        }
                     }
                 }
 
                 if (actions is not null && header is not null)
                 {
-                    _candidates = actions;
-
-                    var footer = process.StandardOutput.ReadToEnd().Trim();
+                    _candidates ??= actions;
                     return string.IsNullOrEmpty(footer)
                         ? new FeedbackItem(header, actions)
                         : new FeedbackItem(header, actions, footer, FeedbackDisplayLayout.Portrait);
                 }
             }
         }
+        catch (Exception)
+        {
+            // Ignore any exceptions.
+        }
 
         return null;
+    }
+
+    private static string GetPackageName(ReadOnlySpan<char> line)
+    {
+        int nextSpace = line.IndexOf(' ');
+        var ret = nextSpace > 0 ? line[..nextSpace] : line;
+        return ret.ToString();
     }
 
     #endregion
