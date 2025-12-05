@@ -117,10 +117,11 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
                          * Command 'sshd' not found, but can be installed with:
                          * sudo apt install openssh-server
                         */
-                        actions ??= [];
+                        (actions ??= []).Add(line.TrimEnd());
 
                         // Remove the ending comment about the package version.
                         line = line.Split('#', StringSplitOptions.TrimEntries)[0];
+                        _candidates ??= [];
 
                         // 5 = "sudo ".Length
                         var rest = line.AsSpan(5);
@@ -128,14 +129,14 @@ public sealed class LinuxCommandNotFound : IFeedbackProvider, ICommandPredictor
                         {
                             // 13 = "snap install ".Length
                             string package = GetPackageName(rest[13..]);
-                            actions.Add($"snap info {package}");
+                            _candidates.Add($"snap info {package}");
                         }
                         else if (rest.StartsWith("apt  install", StringComparison.Ordinal))
                         {
                             line = line.Replace("apt  install", "apt install");
                         }
 
-                        actions.Add(line);
+                        _candidates.Add(line);
                     }
                     else if (line.StartsWith("  "))
                     {
