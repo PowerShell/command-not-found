@@ -2,7 +2,7 @@
 
 The `command-not-found` module is a feedback provider plugin for PowerShell.
 This feedback provider depends on the `command-not-found` utility,
-which is often available on Linux by default,
+which is often available on Ubuntu by default,
 to provide suggestions when a native command cannot be found.
 
 `bash` also calls the `command-not-found` utility to provide suggestions when a command cannot be found.
@@ -19,11 +19,11 @@ they will be used as predictive suggestions to streamline the user's command-lin
 ## Requirements
 
 The `command-not-found` plugin is built on the `IFeedbackProvider` interface,
-which is available with PowerShell `7.4.0-preview.2` or above.
+which is available with PowerShell `7.4.0` or above.
 To display prediction suggestions from the `command-not-found`,
 you need [PSReadLine 2.2.6][psreadline-226] or above.
 
-- PowerShell `7.4.0-preview.2` or above
+- PowerShell `7.4.0` or above
 - PSReadLine `2.2.6` or above
 
 ## Documentation
